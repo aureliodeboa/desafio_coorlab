@@ -1,47 +1,64 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
-</script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main>
+  <div id="app">
+    <search-form @submit="handleSearch" @show-modal="showModal = true" />
+    <trip-details :fastestTrip="fastestTrip" :cheapestTrip="cheapestTrip" />
+    <modal-warning v-if="showModal" @close="showModal = false" />
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-}
+<script>
+import SearchForm from './components/SearchForm.vue';
+import TripDetails from './components/TripDetails.vue';
+import ModalWarning from './components/ModalWarning.vue';
+import axios from 'axios';
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+export default {
+  components: {
+    SearchForm,
+    TripDetails,
+    ModalWarning
+  },
+  data() {
+    return {
+      fastestTrip: null,
+      cheapestTrip: null,
+      showModal: false
+    };
+  },
+  methods: {
+    async handleSearch(formData) {
+      try {
+        const response = await axios.get('http://localhost:3000/trips');
+        const filterTrips= response.data.transport.filter((city)=>city == SearchForm)
+        const trips = filterTrips.map((duration)=>duration.duration.slice(0,-1));
+        console.log(trips);
+        //response.data.transport.map((name)=>name.city)
+        // Encontrar a viagem mais rápida
+        let fastestTrip = trips.reduce((prev, curr) => {
+          return parseFloat(curr.duration) < parseFloat(prev.duration) ? curr : prev;
+        });
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+        // Encontrar a viagem mais econômica
+        let cheapestTrip = trips.reduce((prev, curr) => {
+          return parseFloat(curr.price_econ) < parseFloat(prev.price_econ) ? curr : prev;
+        });
+
+        // Atualizar o estado do componente com os detalhes das viagens
+        this.fastestTrip = fastestTrip;
+        this.cheapestTrip = cheapestTrip;
+      } catch (error) {
+        console.error('Erro ao buscar viagens:', error);
+      }
+    }
   }
+};
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
+</script>
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+<style>
+#app {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin-top: 20px;
 }
 </style>
